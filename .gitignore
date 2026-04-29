@@ -1,0 +1,19 @@
+# Datasets
+*.csv
+# If you DO want to upload the baseline data, uncomment the line below:
+# !baseline_data.csv
+
+# Models (Joblib files can be large)
+*.joblib
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+env/
+
+# Mac/Windows
+.DS_Store
+Thumbs.db
+desktop.ini
