@@ -9,7 +9,7 @@ An interactive, data-driven full-stack application designed to simulate and pred
 ![Leaflet](https://img.shields.io/badge/Leaflet-199900?style=for-the-badge&logo=Leaflet&logoColor=white)
 
 ## 🌟 Key Features
-- **Predictive ML Modeling**: Uses a Multi-Layer Perceptron (MLP) Regressor ($R^2 \approx 0.70$) trained on multi-year spatial datasets (NDVI, NDBI, Albedo, NDWI).
+- **Predictive ML Modeling**: Uses a XGBoost Model ($R^2 \approx 0.869$) trained on multi-year spatial datasets (NDVI, NDBI, Albedo, NDWI).
 - **Interactive Map**: A sleek, dark-themed geographic heatmap displaying Karachi's surface temperatures point-by-point using `react-leaflet`.
 - **Dynamic Simulation**: Sliders allowing real-time adjustments (-100% to +100%) to Vegetation (NDVI), Urbanization (NDBI), and Cool Roof coverage (Albedo).
 - **Policy Impact Analytics**: Translates raw temperature changes into human-readable policy insights (e.g., peak cooling energy demand reduction).
