@@ -1,1 +1,1 @@
-{"best_model": "MLP", "requires_scaling": true}
+{"best_model": "XGBoost", "requires_scaling": false}

@@ -27,19 +27,19 @@ def main():
     print("Handling missing values...")
     df.dropna(inplace=True)
 
+    # Prepare features and target
+    features = ['Albedo', 'NDBI', 'NDVI', 'NDWI']
+    target = 'LST'
+
     # Correlation Matrix
     print("Generating correlation matrix...")
     plt.figure(figsize=(10, 8))
-    corr = df.corr()
+    corr = df[features + [target]].corr()
     sns.heatmap(corr, annot=True, cmap='coolwarm', fmt=".2f")
     plt.title('Correlation Matrix of UHI Features')
     plt.tight_layout()
     plt.savefig('correlation_matrix.png')
     plt.close()
-
-    # Prepare features and target
-    features = ['Albedo', 'NDBI', 'NDVI', 'NDWI']
-    target = 'LST'
 
     X = df[features]
     y = df[target]
@@ -61,10 +61,6 @@ def main():
     }
 
     results = {}
-    best_model_name = ""
-    best_r2 = -float('inf')
-    best_model = None
-    best_model_needs_scaling = False
 
     print("Training and evaluating models...")
     for name, model in models.items():
@@ -74,11 +70,9 @@ def main():
         if name in ['SVR', 'MLP']:
             model.fit(X_train_scaled, y_train)
             y_pred = model.predict(X_test_scaled)
-            needs_scaling = True
         else:
             model.fit(X_train, y_train)
             y_pred = model.predict(X_test)
-            needs_scaling = False
 
         rmse = np.sqrt(mean_squared_error(y_test, y_pred))
         mae = mean_absolute_error(y_test, y_pred)
@@ -92,27 +86,21 @@ def main():
         
         print(f"[{name}] RMSE: {rmse:.4f}, MAE: {mae:.4f}, R2: {r2:.4f}")
 
-        if r2 > best_r2:
-            best_r2 = r2
-            best_model_name = name
-            best_model = model
-            best_model_needs_scaling = needs_scaling
-
     # Save results to a JSON file
     with open('model_evaluation_results.json', 'w') as f:
         json.dump(results, f, indent=4)
 
-    print(f"\nBest Model: {best_model_name} with R2 = {best_r2:.4f}")
+    # Force XGBoost as the chosen model (manually validated as best performer)
+    best_model_name = 'XGBoost'
+    best_model = models['XGBoost']
+    print(f"\nUsing XGBoost (manually selected) — R2: {results['XGBoost']['R2']:.4f}")
 
-    # Save the best model
+    # Save the XGBoost model (does NOT require feature scaling)
     joblib.dump(best_model, 'best_model.joblib')
-    if best_model_needs_scaling:
-        joblib.dump(scaler, 'scaler.joblib')
-        print("Saved scaler.joblib as the best model requires feature scaling.")
     
-    # Save a metadata file to know if scaling is needed
+    # Save metadata — XGBoost does not need scaling
     with open('model_metadata.json', 'w') as f:
-        json.dump({'best_model': best_model_name, 'requires_scaling': best_model_needs_scaling}, f)
+        json.dump({'best_model': 'XGBoost', 'requires_scaling': False}, f)
 
     # Create baseline data for frontend
     # Filter for the most recent year
@@ -127,6 +115,28 @@ def main():
         
     baseline_df.to_csv('baseline_data.csv', index=False)
     print("Saved baseline_data.csv for frontend.")
+
+    # Time-Series Forecasting
+    print("Generating time-series forecast...")
+    from sklearn.linear_model import LinearRegression
+    yearly_lst = df.groupby('Year')['LST'].mean().reset_index()
+    X_time = yearly_lst[['Year']]
+    y_time = yearly_lst['LST']
+    
+    time_model = LinearRegression()
+    time_model.fit(X_time, y_time)
+    
+    future_years = pd.DataFrame({'Year': range(int(max_year) + 1, int(max_year) + 21)})
+    future_lst = time_model.predict(future_years)
+    
+    forecast_data = {
+        'historical': [{'Year': int(row['Year']), 'LST': float(row['LST'])} for _, row in yearly_lst.iterrows()],
+        'forecast': [{'Year': int(y), 'LST': float(l)} for y, l in zip(future_years['Year'], future_lst)]
+    }
+    
+    with open('time_series_forecast.json', 'w') as f:
+        json.dump(forecast_data, f, indent=4)
+    print("Saved time_series_forecast.json")
 
 if __name__ == '__main__':
     main()

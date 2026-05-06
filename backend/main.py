@@ -22,6 +22,7 @@ MODEL_PATH = os.path.join(BASE_DIR, "best_model.joblib")
 SCALER_PATH = os.path.join(BASE_DIR, "scaler.joblib")
 BASELINE_DATA_PATH = os.path.join(BASE_DIR, "baseline_data.csv")
 METADATA_PATH = os.path.join(BASE_DIR, "model_metadata.json")
+FORECAST_PATH = os.path.join(BASE_DIR, "time_series_forecast.json")
 
 try:
     best_model = joblib.load(MODEL_PATH)
@@ -50,7 +51,7 @@ def get_baseline():
     if baseline_df.empty:
         raise HTTPException(status_code=500, detail="Baseline data not available.")
     
-    data = baseline_df[['latitude', 'longitude', 'LST']].to_dict(orient="records")
+    data = baseline_df[['latitude', 'longitude', 'LST', 'NDBI', 'NDVI']].to_dict(orient="records")
     return {"data": data}
 
 @app.post("/api/simulate")
@@ -76,10 +77,19 @@ def simulate(params: SimulationParams):
     
     new_lst = best_model.predict(X_sim)
     
-    result_df = sim_df[['latitude', 'longitude']].copy()
+    result_df = sim_df[['latitude', 'longitude', 'NDBI', 'NDVI']].copy()
     result_df['LST'] = new_lst
     
     return {"data": result_df.to_dict(orient="records")}
+
+@app.get("/api/forecast")
+def get_forecast():
+    try:
+        with open(FORECAST_PATH, "r") as f:
+            forecast_data = json.load(f)
+        return forecast_data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Forecast data not available: {e}")
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
